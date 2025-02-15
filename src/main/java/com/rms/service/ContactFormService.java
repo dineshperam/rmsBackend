@@ -67,6 +67,7 @@ public class ContactFormService {
             newUser.setUsername(username);
             newUser.setPassword(passwordEncoder.encode(dummyPassword));
             newUser.setPasswordHash(dummyPassword);
+            newUser.setFirstLogin(true);
 
             // Set manager ID as admin ID
             newUser.setManagerId(adminId);

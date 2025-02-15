@@ -67,5 +67,10 @@ public class StreamsController {
 			}
 		}
 		
+		@GetMapping("/in-progress")
+	    public List<Streams> getInProgressStreams() {
+	        return streamService.getInProgressStreams();
+	    }
+		
 }
  

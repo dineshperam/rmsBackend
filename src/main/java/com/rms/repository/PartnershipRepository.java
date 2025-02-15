@@ -11,7 +11,12 @@ import com.rms.model.Partnership;
 @Repository
 public interface PartnershipRepository extends JpaRepository<Partnership, Integer> {
 	
-	Optional<Partnership> findByArtistidAndManagerid(int artistId, int managerId);
-    List<Partnership> findByManageridAndStatus(int managerId, String status);
+	Optional<Partnership> findByArtistIdAndManagerId(int artistId, int managerId);
+    List<Partnership> findByManagerIdAndStatus(int managerId, String status);
+    
+    List<Partnership> findByArtistIdAndStatus(int artistId, String status);
+    
+    Optional<Partnership> findByArtistIdAndManagerIdAndStatus(int artistId, int managerId, String status);
+
 	
 }

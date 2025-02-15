@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import com.rms.dtos.ManagerRoyaltyDTO;
 import com.rms.dtos.ManagerRoyaltyDetailsDTO;
+import com.rms.dtos.SongDTO;
 import com.rms.dtos.UserDTO;
 import com.rms.model.Royalty;
 import com.rms.model.Song;
@@ -295,5 +296,55 @@ public class InsightsService {
 	    
 	    public Long getTotalStreamsByUserId(int userId) {
 	        return streamsRepository.getTotalStreamsByUserId(userId);
+	    }
+	    
+	 // Insight 1: Total Songs of Artists Under the Manager
+	    public Long getTotalSongsByManager(int managerId) {
+	        return userRepository.countTotalSongsByManager(managerId);
+	    }
+
+	    // Insight 2: Total Streams of Artists Under the Manager
+	    public Long getTotalStreamsByManager(int managerId) {
+	        return streamsRepository.countTotalStreamsByManager(managerId);
+	    }
+
+	    // Insight 3: Manager's Total Revenue
+	    public Double getManagerTotalRevenue(int managerId) {
+	        return transactionsRepository.getManagerTotalRevenue(managerId);
+	    }
+
+	    // Insight 4: Total Revenue of All Artists Under the Manager
+	    public Double getTotalRevenueOfArtistsByManager(int managerId) {
+	        return royaltyRepository.getTotalRevenueOfArtistsByManager(managerId);
+	    }
+	    
+	    public Map<String, Long> getGenreSongCountByArtist(Long artistId) {
+	        List<Object[]> results = songRepository.getGenreSongCountByArtist(artistId);
+	        Map<String, Long> genreSongCount = new HashMap<>();
+	        
+	        for (Object[] row : results) {
+	            String genre = (String) row[0];
+	            Long count = (Long) row[1];
+	            genreSongCount.put(genre, count);
+	        }
+	        
+	        return genreSongCount;
+	    }
+	    
+	    public List<SongDTO> getTopSongsByStreams(int artistId) {
+	        List<Song> artistSongs = songRepository.findByArtistId(artistId);
+	        List<Integer> artistSongIds = artistSongs.stream().map(Song::getSongId).toList();
+	        
+	        List<Object[]> topSongs = streamsRepository.findTopSongsByStreams();
+	        return topSongs.stream().map(record -> {
+	            int songId = (int) record[0];
+	            if (artistSongIds.contains(songId)) {
+	                Song song = songRepository.findById(songId).orElse(null);
+	                if (song != null) {
+	                    return new SongDTO(song.getSongId(), song.getReleaseDate(), song.getTitle(), song.getCollaborators(), song.getGenre());
+	                }
+	            }
+	            return null;
+	        }).filter(song -> song != null).toList();
 	    }
 }

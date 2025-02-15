@@ -14,9 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.rms.dtos.ManagerRoyaltyDTO;
 import com.rms.dtos.ManagerRoyaltyDetailsDTO;
+import com.rms.dtos.SongDTO;
 import com.rms.dtos.UserDTO;
 import com.rms.model.Song;
 import com.rms.model.UserDetails;
+import com.rms.repository.StreamsRepository;
 import com.rms.service.InsightsService;
 
 @RestController
@@ -26,6 +28,9 @@ public class InsightsController {
 	
 	@Autowired
 	private InsightsService insightsService;
+	
+	@Autowired
+	private StreamsRepository streamsRepository;
 	
 	// Get top earning artists
     @GetMapping("/top-earning-artists")
@@ -176,5 +181,45 @@ public class InsightsController {
         return insightsService.getTotalStreamsByUserId(userId);
     }
     
+    // Endpoint for total songs of artists under a manager
+    @GetMapping("/total-songs/{managerId}")
+    public Long getTotalSongsByManager(@PathVariable int managerId) {
+        return insightsService.getTotalSongsByManager(managerId);
+    }
+
+    // Endpoint for total streams of artists under a manager
+    @GetMapping("/total-streams/{managerId}")
+    public Long getTotalStreamsByManager(@PathVariable int managerId) {
+        return insightsService.getTotalStreamsByManager(managerId);
+    }
+
+    // Endpoint for manager's total revenue
+    @GetMapping("/manager-revenue/{managerId}")
+    public Double getManagerTotalRevenue(@PathVariable int managerId) {
+        return insightsService.getManagerTotalRevenue(managerId);
+    }
+
+    // Endpoint for total revenue of all artists under the manager
+    @GetMapping("/total-revenue/{managerId}")
+    public Double getTotalRevenueOfArtistsByManager(@PathVariable int managerId) {
+        return insightsService.getTotalRevenueOfArtistsByManager(managerId);
+    }
+    
+    @GetMapping("/top-songs/{artistId}")
+    public ResponseEntity<List<Map<String, Object>>> getTop5Songs(@PathVariable int artistId) {
+        List<Map<String, Object>> topSongs = streamsRepository.findTop5SongsByArtist(artistId);
+        return ResponseEntity.ok(topSongs);
+    }
+    
+    @GetMapping("/genre-count/{artistId}")
+    public ResponseEntity<Map<String, Long>> getGenreSongCount(@PathVariable Long artistId) {
+        Map<String, Long> genreSongCount = insightsService.getGenreSongCountByArtist(artistId);
+        return ResponseEntity.ok(genreSongCount);
+    }
+    
+    @GetMapping("/top-songs-artist-table/{artistId}")
+    public List<SongDTO> getTopSongs(@PathVariable int artistId) {
+        return insightsService.getTopSongsByStreams(artistId);
+    }
     
 }

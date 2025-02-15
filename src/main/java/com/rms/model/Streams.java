@@ -30,6 +30,8 @@ public class Streams {
     private long streamCount;
     @Column(name="user_id")
     private int userId;
+    @Column(name="status")
+    private String status;
     
 	public Streams(int streamId, int songId, Date streamDate, int userId) {
 		super();
@@ -38,7 +40,4 @@ public class Streams {
 		this.streamDate = streamDate;
 		this.userId = userId;
 	}
-    
-    
- 
 }

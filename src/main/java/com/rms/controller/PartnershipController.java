@@ -1,6 +1,7 @@
 package com.rms.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,7 +17,7 @@ public class PartnershipController {
 
     @Autowired
     private PartnershipService partnershipService;
-
+   
     @PostMapping("/add")
     public ResponseEntity<Partnership> createPartnership(@RequestBody Partnership partnership) {
         Partnership createdPartnership = partnershipService.createPartnership(partnership);
@@ -55,24 +56,43 @@ public class PartnershipController {
         return new ResponseEntity<>("Partnership deleted successfully!", HttpStatus.OK);
     }
     
+ // **Artist sends a partnership request**
     @PostMapping("/request")
-    public ResponseEntity<?> sendRequest(@RequestParam int artistId, @RequestParam int managerId) {
+    public ResponseEntity<?> sendRequest(@RequestBody Map<String, Object> requestMap) {
         try {
-            Partnership partnership = partnershipService.sendRequest(artistId, managerId);
+            System.out.println("Received Request Payload: " + requestMap); // Debugging log
+
+            // Ensure values are not null before casting
+            Integer artistId = requestMap.get("artistId") instanceof Number ? ((Number) requestMap.get("artistId")).intValue() : null;
+            Integer managerId = requestMap.get("managerId") instanceof Number ? ((Number) requestMap.get("managerId")).intValue() : null;
+            Double percentage = requestMap.get("percentage") instanceof Number ? ((Number) requestMap.get("percentage")).doubleValue() : null;
+            Integer durationMonths = requestMap.get("durationMonths") instanceof Number ? ((Number) requestMap.get("durationMonths")).intValue() : null;
+            String comments = (String) requestMap.getOrDefault("comments", "");
+
+            // Validate required fields
+            if (artistId == null || managerId == null || percentage == null || durationMonths == null) {
+                return ResponseEntity.badRequest().body("Error: Missing required fields.");
+            }
+
+            if (percentage <= 0.0) {
+                return ResponseEntity.badRequest().body("Error: Percentage must be greater than zero.");
+            }
+
+            Partnership partnership = partnershipService.sendRequest(artistId, managerId, percentage, durationMonths, comments);
             return ResponseEntity.ok(partnership);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());  // Return a meaningful error message
+        } catch (Exception e) {
+            e.printStackTrace(); // Log the actual error
+            return ResponseEntity.badRequest().body("Error processing request: " + e.getMessage());
         }
     }
 
+
+    // **Manager retrieves all pending requests**
     @GetMapping("/requests/{managerId}")
     public ResponseEntity<List<Partnership>> getRequestsForManager(@PathVariable int managerId) {
         return ResponseEntity.ok(partnershipService.getRequestsForManager(managerId));
     }
 
-    @PutMapping("/respond/{partnershipId}")
-    public ResponseEntity<Partnership> respondToRequest(@PathVariable int partnershipId, @RequestParam String status) {
-        return ResponseEntity.ok(partnershipService.respondToRequest(partnershipId, status));
-    }
+   
 
 }

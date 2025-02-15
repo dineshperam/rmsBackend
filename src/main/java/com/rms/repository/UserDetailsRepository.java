@@ -63,5 +63,19 @@ public interface UserDetailsRepository extends JpaRepository<UserDetails, Intege
 	    @Query("SELECT COUNT(u) FROM UserDetails u WHERE u.isActive = true")
 	    long getTotalActiveUserCount();
 	    
+	    @Query("SELECT COUNT(s.songId) FROM Song s WHERE s.artistId IN " +
+	    	       "(SELECT u.userid FROM UserDetails u WHERE u.managerId = :managerId AND u.role = 'Artist')")
+	    	Long countTotalSongsByManager(@Param("managerId") int managerId);
+	    
+	    @Query("""
+	    	    SELECT u, SUM(r.royaltyAmount) as totalRevenue
+	    	    FROM UserDetails u
+	    	    JOIN Royalty r ON u.userid = r.artistId
+	    	    WHERE u.role = 'Artist' AND u.managerId = :managerId
+	    	    GROUP BY u
+	    	    ORDER BY totalRevenue DESC
+	    	""")
+	    	List<Object[]> findTopArtistsByRevenueUnderManager(@Param("managerId") int managerId);
+
 	    
 }

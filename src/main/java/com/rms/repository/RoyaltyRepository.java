@@ -4,6 +4,7 @@ import java.util.List;
  
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
  
 import com.rms.model.Royalty;
@@ -47,6 +48,14 @@ public interface RoyaltyRepository extends JpaRepository<Royalty, Integer> {
 	     
 	     @Query("SELECT COALESCE(SUM(r.royaltyAmount), 0) FROM Royalty r WHERE r.artistId = :artistId")
 	     Double getTotalRoyaltyByArtistId(Long artistId);
+	     
+	     @Query("""
+	    	        SELECT COALESCE(SUM(r.royaltyAmount), 0)
+	    	        FROM Royalty r
+	    	        WHERE r.artistId IN (SELECT u.userid FROM UserDetails u WHERE u.managerId = :managerId AND u.role = 'Artist')
+	    	    """)
+	    	Double getTotalRevenueOfArtistsByManager(@Param("managerId") int managerId);
+
 
 	
 }

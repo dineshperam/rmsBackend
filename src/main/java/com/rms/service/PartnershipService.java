@@ -1,5 +1,7 @@
 package com.rms.service;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,8 +41,8 @@ public class PartnershipService {
     // Update an existing Partnership
     public Partnership updatePartnership(int id, Partnership partnership) {
         Partnership existing = getPartnershipById(id); // Use the method here
-        existing.setArtistid(partnership.getArtistid());
-        existing.setManagerid(partnership.getManagerid());
+        existing.setArtistId(partnership.getArtistId());
+        existing.setManagerId(partnership.getManagerId());
         existing.setStatus(partnership.getStatus());
         return partnershipRepository.save(existing);
     }
@@ -53,15 +55,15 @@ public class PartnershipService {
     }
     
     public Partnership sendRequest(int artistId, int managerId) {
-        Optional<Partnership> existingRequest = partnershipRepository.findByArtistidAndManagerid(artistId, managerId);
+        Optional<Partnership> existingRequest = partnershipRepository.findByArtistIdAndManagerId(artistId, managerId);
 
         if (existingRequest.isPresent()) {
             throw new RuntimeException("Request already sent to this manager.");
         }
 
         Partnership partnership = new Partnership();
-        partnership.setArtistid(artistId);
-        partnership.setManagerid(managerId);
+        partnership.setArtistId(artistId);
+        partnership.setManagerId(managerId);
         partnership.setStatus("Pending");
 
         return partnershipRepository.save(partnership);
@@ -69,7 +71,7 @@ public class PartnershipService {
 
 
     public List<Partnership> getRequestsForManager(int managerId) {
-        return partnershipRepository.findByManageridAndStatus(managerId, "Pending");
+        return partnershipRepository.findByManagerIdAndStatus(managerId, "Pending");
     }
 
     public Partnership respondToRequest(int partnershipId, String status) {
@@ -81,13 +83,54 @@ public class PartnershipService {
 
         if ("Accepted".equalsIgnoreCase(status)) {
             // Update artist's manager_id
-            UserDetails artist = userDetailsRepository.findById(partnership.getArtistid())
+            UserDetails artist = userDetailsRepository.findById(partnership.getArtistId())
                     .orElseThrow(() -> new RuntimeException("Artist not found"));
-            artist.setManagerId(partnership.getManagerid());
+            artist.setManagerId(partnership.getManagerId());
             userDetailsRepository.save(artist);
         }
 
         return partnership;
     }
+    
+ // **Artist sends a partnership request**
+    public Partnership sendRequest(int artistId, int managerId, Double percentage, int durationMonths, String comments) {
+        if (durationMonths <= 0) {
+            throw new RuntimeException("Duration must be greater than 0.");
+        }
+
+        if (percentage == null) {  // ✅ Ensure percentage is not null
+            throw new RuntimeException("Percentage cannot be null.");
+        }
+
+        // Ensure unique request
+        Optional<Partnership> existingRequest = partnershipRepository.findByArtistIdAndManagerId(artistId, managerId);
+        if (existingRequest.isPresent()) {
+            throw new RuntimeException("Request already sent to this manager.");
+        }
+
+        Date startDate = new Date(); // ✅ Current timestamp
+        Date endDate = calculateEndDate(startDate, durationMonths);
+
+        Partnership partnership = new Partnership();
+        partnership.setArtistId(artistId);
+        partnership.setManagerId(managerId);
+        partnership.setPercentage(percentage);
+        partnership.setDurationMonths(durationMonths);
+        partnership.setComments(comments);
+        partnership.setStatus("PENDING");
+        partnership.setStartDate(startDate);
+        partnership.setEndDate(endDate);
+
+        return partnershipRepository.save(partnership);
+    }
+    
+ // **Calculate End Date**
+    private Date calculateEndDate(Date startDate, int durationMonths) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(startDate);
+        calendar.add(Calendar.MONTH, durationMonths);
+        return calendar.getTime();
+    }
+
 
 }

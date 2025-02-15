@@ -2,7 +2,8 @@ package com.rms.repository;
  
 import java.util.Date;
 import java.util.List;
- 
+import java.util.Map;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,6 +18,8 @@ public interface StreamsRepository extends JpaRepository<Streams, Integer> {
 	List<Streams> findTop3ByOrderByStreamCountDesc();
 	
 	List<Streams> findBySongIdIn(List<Integer> songIds);
+	
+	List<Streams> findByStatus(String status);
 	
 	// Get total streams for a specific song
     long countBySongId(int songId);
@@ -60,9 +63,27 @@ public interface StreamsRepository extends JpaRepository<Streams, Integer> {
     			
     			@Query("SELECT COALESCE(SUM(s.streamCount), 0) FROM Streams s WHERE s.userId = :userId")
     		    Long getTotalStreamsByUserId(@Param("userId") int userId);
+    			
+    			
+    			@Query("""
+    			        SELECT COALESCE(SUM(st.streamCount), 0)
+    			        FROM Streams st
+    			        JOIN Song s ON st.songId = s.songId
+    			        WHERE s.artistId IN (SELECT u.userid FROM UserDetails u WHERE u.managerId = :managerId AND u.role = 'Artist')
+    			    """)
+    			long countTotalStreamsByManager(@Param("managerId") int managerId);
+    			
+    			@Query("SELECT new map(s.title as songName, SUM(st.streamCount) as totalStreams) " +
+    				       "FROM Streams st JOIN Song s ON st.songId = s.songId " +
+    				       "WHERE s.artistId = :artistId " +
+    				       "GROUP BY s.songId, s.title " +
+    				       "ORDER BY totalStreams DESC " +
+    				       "LIMIT 5")
+    				List<Map<String, Object>> findTop5SongsByArtist(@Param("artistId") int artistId);
 
 
-	
+    			@Query("SELECT s.songId, SUM(s.streamCount) as totalStreams FROM Streams s GROUP BY s.songId ORDER BY totalStreams DESC")
+    		    List<Object[]> findTopSongsByStreams();
 }
 
 	

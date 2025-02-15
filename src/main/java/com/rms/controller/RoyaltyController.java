@@ -1,7 +1,10 @@
 package com.rms.controller;
  
  
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
  
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,15 +78,22 @@ public class RoyaltyController {
 		}
 		
 		@PutMapping("/payRoyalty/{id}/{adminId}")
-		public ResponseEntity<String> payRoyalty(@PathVariable int id, @PathVariable int adminId) {
-		    royaltyService.processRoyaltyPayment(id, adminId);
-		    return ResponseEntity.ok("Royalty payment processed successfully.");
+		public ResponseEntity<Map<String, String>> payRoyalty(@PathVariable int id, @PathVariable int adminId) {
+		    try {
+		        royaltyService.processRoyaltyPayment(id, adminId);
+		        Map<String, String> response = new HashMap<>();
+		        response.put("message", "Royalty payment processed successfully.");
+		        return ResponseEntity.ok(response);
+		    } catch (Exception e) {
+		        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+		                .body(Collections.singletonMap("error", "Failed to process royalty payment: " + e.getMessage()));
+		    }
 		}
 		
-		@PostMapping("/calculate")
-	    public ResponseEntity<String> calculateRoyalty() {
-	        royaltyService.calculateAndStoreRoyalty();
-	        return ResponseEntity.ok("Royalty calculation completed successfully.");
-	    }
+		@GetMapping("/calculate")
+		public ResponseEntity<String> calculateRoyalty() {
+		    royaltyService.calculateAndStoreRoyalty(); // Ensuring new records are created
+		    return ResponseEntity.ok("Royalty calculation completed successfully.");
+		}
 
 }
