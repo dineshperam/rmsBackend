@@ -50,6 +50,13 @@ public class ContactFormService {
 
         if (contactOpt.isPresent()) {
             ContactForm contact = contactOpt.get();
+            
+            // Check if email already exists in UserDetails
+            Optional<UserDetails> existingUser = userDetailsRepository.findByEmail(contact.getEmail());
+            if (existingUser.isPresent()) {
+                return "Email already exists. Cannot create a new user.";
+            }
+            
             contact.setStatus("Accepted");
             contactFormRepository.save(contact);
 
@@ -63,7 +70,9 @@ public class ContactFormService {
 
             // Generate username and dummy password
             String username = contact.getFirstname().toLowerCase() + contact.getLastname().toLowerCase();
+            String email = contact.getEmail();
             String dummyPassword = generateDummyPassword(10);
+            newUser.setEmail(email);
             newUser.setUsername(username);
             newUser.setPassword(passwordEncoder.encode(dummyPassword));
             newUser.setPasswordHash(dummyPassword);
@@ -74,7 +83,8 @@ public class ContactFormService {
 
             // Save new user
             userDetailsRepository.save(newUser);
-            emailService.sendWelcomeEmail(contact.getEmail(), contact.getFirstname(), contact.getRole(), username, dummyPassword);
+            
+            emailService.sendWelcomeEmail(contact.getEmail(), contact.getFirstname(), contact.getRole(),email, dummyPassword);
 
             return "Contact request accepted, user created, and email sent.";
         } else {

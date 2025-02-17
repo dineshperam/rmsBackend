@@ -6,11 +6,13 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
- 
+
+import com.rms.model.Partnership;
 import com.rms.model.Royalty;
 import com.rms.model.Streams;
 import com.rms.model.Transactions;
 import com.rms.model.UserDetails;
+import com.rms.repository.PartnershipRepository;
 import com.rms.repository.RoyaltyRepository;
 import com.rms.repository.StreamsRepository;
 import com.rms.repository.UserDetailsRepository;
@@ -31,6 +33,9 @@ public class RoyaltyService {
 	
 	@Autowired
 	private StreamsRepository streamsRepository;
+	
+	@Autowired
+	private PartnershipRepository partnershipRepository;
 	
 	@Autowired
 	private EmailService emailService;
@@ -67,116 +72,99 @@ public class RoyaltyService {
 	        }
 	    }
     
-    @Transactional
-    public void calculateAndStoreRoyalty() {
-        List<Streams> streamsList = streamsRepository.findAll();
+	 @Transactional
+	    public void calculateAndStoreRoyalty() {
+	        // Get all stream records (assumed to be new records)
+	        List<Streams> streamsList = streamsRepository.findByStatus("IN PROGRESS");
 
-        for (Streams stream : streamsList) {
-            int songId = stream.getSongId();
-            long totalStreams = stream.getStreamCount();
-            int artistId = stream.getUserId(); // Assuming user_id is artist_id
+	        for (Streams stream : streamsList) {
+	            int songId = stream.getSongId();
+	            int artistId = stream.getUserId();  // Assuming user_id represents the artist
+	            long streamCount = stream.getStreamCount();
 
-            double royaltyAmount = calculateRoyaltyAmount(totalStreams);
+	            // Calculate royalty amount based on the stream count
+	            double royaltyAmount = calculateRoyaltyAmount(streamCount);
 
-            // Retrieve existing royalty records (list)
-            List<Royalty> existingRoyalties = royaltyRepository.findBySongId(songId);
+	            // Always create a new royalty record for this stream record
+	            Royalty royalty = new Royalty();
+	            royalty.setSongId(songId);
+	            royalty.setArtistId(artistId);
+	            royalty.setTotalStreams(streamCount);
+	            royalty.setRoyaltyAmount(royaltyAmount);
+	            royalty.setCalculatedDate(new Date());
+	            royalty.setStatus("PENDING");
 
-            if (!existingRoyalties.isEmpty()) {
-                // Update all existing royalty records for the song
-                for (Royalty existingRoyalty : existingRoyalties) {
-                    existingRoyalty.setTotalStreams(totalStreams);
-                    existingRoyalty.setRoyaltyAmount(royaltyAmount);
-                    existingRoyalty.setCalculatedDate(new Date());
-                    existingRoyalty.setStatus("PENDING");
-
-                    royaltyRepository.save(existingRoyalty);
-                }
-            } else {
-                // Create a new record
-                Royalty royalty = new Royalty();
-                royalty.setSongId(songId);
-                royalty.setArtistId(artistId);
-                royalty.setTotalStreams(totalStreams);
-                royalty.setRoyaltyAmount(royaltyAmount);
-                royalty.setCalculatedDate(new Date());
-                royalty.setStatus("PENDING");
-
-                royaltyRepository.save(royalty);
-            }
-        }
-    }
+	            royaltyRepository.save(royalty);
+	        }
+	    }
 
 
-    public void processRoyaltyPayment(int royaltyId, int adminId) {
-        Optional<Royalty> royaltyOpt = royaltyRepository.findById(royaltyId);
-        
-        if (royaltyOpt.isPresent()) {
-            Royalty royalty = royaltyOpt.get();
-            int artistId = royalty.getArtistId();
-            
-            // Fetch artist details to get manager ID
-            Optional<UserDetails> artistDetails = userDetailsRepository.findById(artistId);
-            if (artistDetails.isPresent()) {
-                UserDetails artist = artistDetails.get();
-                int managerId = artist.getManagerId();
-                double amount = royalty.getRoyaltyAmount();
-                
-                // Calculate payments
-                double managerShare = (managerId != artistId) ? amount * 0.10 : 0.0;
-                double artistShare = amount - managerShare;
 
-                // Fetch admin details
-                Optional<UserDetails> adminDetailsOpt = userDetailsRepository.findById(adminId);
-                String adminEmail = adminDetailsOpt.map(UserDetails::getEmail).orElse("admin@example.com");
-                String adminName = adminDetailsOpt.map(UserDetails::getFirstName).orElse("Admin");
+	    public void processRoyaltyPayment(int royaltyId, int adminId) {
+	        Optional<Royalty> royaltyOpt = royaltyRepository.findById(royaltyId);
+	        if (royaltyOpt.isEmpty()) {
+	            throw new RuntimeException("Royalty not found with ID: " + royaltyId);
+	        }
 
-                // Create Transaction for Artist
-                Transactions artistTransaction = new Transactions(
-                    artistId,    // Receiver: Artist
-                    adminId,     // Sender: Admin
-                    royaltyId,
-                    new Date(),  // Transaction Date
-                    artistShare, // Amount: Artist's Share
-                    artistId,    // Manager ID: Null (since this is for the artist)
-                    "CREDIT"
-                );
-                transactionService.addTransaction(artistTransaction);
+	        Royalty royalty = royaltyOpt.get();
+	        int artistId = royalty.getArtistId();
 
-                // Send Email to Artist (Receiver)
-                emailService.sendPaymentReceivedEmail(artist.getEmail(), artist.getFirstName(), artistShare);
+	        Optional<UserDetails> artistDetailsOpt = userDetailsRepository.findById(artistId);
+	        if (artistDetailsOpt.isEmpty()) {
+	            throw new RuntimeException("Artist not found with ID: " + artistId);
+	        }
 
-                // Send Email to Admin (Sender)
-                emailService.sendPaymentSentEmail(adminEmail, adminName, artistShare, artist.getFirstName());
+	        UserDetails artist = artistDetailsOpt.get();
+	        int managerId = artist.getManagerId();
+	        double totalAmount = royalty.getRoyaltyAmount();
 
-                // Create Transaction for Manager (if applicable)
-                if (managerShare > 0) {
-                    Optional<UserDetails> managerDetailsOpt = userDetailsRepository.findById(managerId);
-                    if (managerDetailsOpt.isPresent()) {
-                        UserDetails manager = managerDetailsOpt.get();
+	        // Fetch manager's share from partnership table
+	        double managerSharePercentage = partnershipRepository
+	                .findByArtistIdAndManagerIdAndStatus(artistId, managerId, "Accepted")
+	                .map(Partnership::getPercentage)
+	                .orElse(0.0);
 
-                        Transactions managerTransaction = new Transactions(
-                            managerId,    // Receiver: Manager
-                            adminId,      // Sender: Admin
-                            royaltyId,
-                            new Date(),   // Transaction Date
-                            managerShare, // Amount: Manager's Share
-                            managerId,    // Manager ID: Set for the manager's transaction
-                            "CREDIT"
-                        );
-                        transactionService.addTransaction(managerTransaction);
+	        double managerShare = (managerSharePercentage / 100) * totalAmount;
+	        double artistShare = totalAmount - managerShare;
 
-                        // Send Email to Manager (Receiver)
-                        emailService.sendPaymentReceivedEmail(manager.getEmail(), manager.getFirstName(), managerShare);
+	        Optional<UserDetails> adminDetailsOpt = userDetailsRepository.findById(adminId);
+	        String adminEmail = adminDetailsOpt.map(UserDetails::getEmail).orElse("admin@example.com");
+	        String adminName = adminDetailsOpt.map(UserDetails::getFirstName).orElse("Admin");
 
-                        // Send Email to Admin (Sender) for Manager's Share
-                        emailService.sendPaymentSentEmail(adminEmail, adminName, managerShare, manager.getFirstName());
-                    }
-                }
+	        // Create Transaction for Artist
+	        Transactions artistTransaction = new Transactions(
+	            artistId, adminId, royaltyId, new Date(), artistShare, artistId, "CREDIT"
+	        );
+	        transactionService.addTransaction(artistTransaction);
 
-                // Update Royalty Status
-                royalty.setStatus("PAID");
-                royaltyRepository.save(royalty);
-            }
-        }
-    }
+	        emailService.sendPaymentReceivedEmail(artist.getEmail(), artist.getFirstName(), artistShare);
+	        emailService.sendPaymentSentEmail(adminEmail, adminName, artistShare, artist.getFirstName());
+
+	        if (managerShare > 0) {
+	            Optional<UserDetails> managerDetailsOpt = userDetailsRepository.findById(managerId);
+	            if (managerDetailsOpt.isPresent()) {
+	                UserDetails manager = managerDetailsOpt.get();
+
+	                Transactions managerTransaction = new Transactions(
+	                    managerId, adminId, royaltyId, new Date(), managerShare, managerId, "CREDIT"
+	                );
+	                transactionService.addTransaction(managerTransaction);
+
+	                emailService.sendPaymentReceivedEmail(manager.getEmail(), manager.getFirstName(), managerShare);
+	                emailService.sendPaymentSentEmail(adminEmail, adminName, managerShare, manager.getFirstName());
+	            }
+	        }
+
+	        // Update the royalty status to PAID
+	        royalty.setStatus("PAID");
+	        royaltyRepository.save(royalty);
+
+	        // **Update streams status to "PROCESSED" for related streams**
+	        List<Integer> songIds = streamsRepository.findSongIdsByRoyaltyId(royaltyId);
+	        if (!songIds.isEmpty()) {
+	            streamsRepository.updateStatusBySongIds(songIds, "PROCESSED");
+	        }
+	    }
+
+
 }

@@ -62,6 +62,24 @@ public class UserDetailsService {
 		return res;
 	} 
 	
+	public boolean updateUserDetails(UserDetails userDetails) {
+        UserDetails user = userDetailsRepository.findByUsername(userDetails.getUsername());
+
+        if (user == null) {
+            return false; // User not found
+        }
+
+        // Update only allowed fields
+        user.setFirstName(userDetails.getFirstName());
+        user.setLastName(userDetails.getLastName());
+        user.setEmail(userDetails.getEmail());
+        user.setMobileNo(userDetails.getMobileNo());
+        user.setAddress(userDetails.getAddress());
+
+        userDetailsRepository.save(user);
+        return true;
+    }	
+	
 	public UserDetails searchByUseName(String userName) {
 		return userDetailsRepository.findByUsername(userName);
 		

@@ -43,6 +43,10 @@ public class InsightsService {
 	@Autowired
     private UserDetailsRepository userRepository;
 	
+	public List<Object[]> getTopArtistsByRevenueUnderManager(int managerId) {
+        return userRepository.findTopArtistsByRevenueUnderManager(managerId);
+    }
+	
 	
 	//get top 3 streamed songs
 	public List<Song> getTopStreamedSongs() {

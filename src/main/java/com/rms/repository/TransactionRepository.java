@@ -16,6 +16,8 @@ public interface TransactionRepository extends JpaRepository<Transactions, Integ
 	
 	List<Transactions> findByManagerId(int id);
 	
+	List<Transactions> findByReceiverIn(List<Integer> receiverIds);
+	
 	@Query("SELECT COALESCE(SUM(t.transactionAmount), 0) FROM Transactions t WHERE t.receiver = :managerId")
 	Double getManagerTotalRevenue(@Param("managerId") int managerId);
 

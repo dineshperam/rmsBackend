@@ -5,10 +5,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.rms.model.Streams;
+
+import jakarta.transaction.Transactional;
 
 public interface StreamsRepository extends JpaRepository<Streams, Integer> {
  
@@ -26,6 +29,17 @@ public interface StreamsRepository extends JpaRepository<Streams, Integer> {
 
     // Get streams within a date range (for monthly insights)
     List<Streams> findByStreamDateBetween(Date startDate, Date endDate);
+    
+ // First, fetch all songIds related to the given royaltyId
+    @Query("SELECT r.songId FROM Royalty r WHERE r.id = :royaltyId")
+    List<Integer> findSongIdsByRoyaltyId(@Param("royaltyId") int royaltyId);
+
+    // Then, update the streams where the songId matches
+    @Transactional
+    @Modifying
+    @Query("UPDATE Streams s SET s.status = :status WHERE s.songId IN :songIds")
+    void updateStatusBySongIds(@Param("songIds") List<Integer> songIds, @Param("status") String status);
+    
     
     @Query("SELECT u.firstName, u.lastName, s.artistId, SUM(st.streamCount) as totalStreams " +
             "FROM Song s " +
@@ -51,39 +65,39 @@ public interface StreamsRepository extends JpaRepository<Streams, Integer> {
     		List<Object[]> findTop5ArtistsByStreams(int year);
     		
     
-    		@Query(value = """
-    			    SELECT u.user_id, CONCAT(u.firstname, ' ', u.lastname) AS name, 
-    			           u.email, u.role, 
-    			           CASE WHEN u.is_active = 1 THEN 'Active' ELSE 'Inactive' END AS status
-    			    FROM users u
-    			    WHERE u.role = 'Artist'
-    			    ORDER BY u.firstname, u.lastname Limit 5
-    			""", nativeQuery = true)
-    			List<Object[]> findTop5ArtistsByStreamsDetails();
-    			
-    			@Query("SELECT COALESCE(SUM(s.streamCount), 0) FROM Streams s WHERE s.userId = :userId")
-    		    Long getTotalStreamsByUserId(@Param("userId") int userId);
-    			
-    			
-    			@Query("""
-    			        SELECT COALESCE(SUM(st.streamCount), 0)
-    			        FROM Streams st
-    			        JOIN Song s ON st.songId = s.songId
-    			        WHERE s.artistId IN (SELECT u.userid FROM UserDetails u WHERE u.managerId = :managerId AND u.role = 'Artist')
-    			    """)
-    			long countTotalStreamsByManager(@Param("managerId") int managerId);
-    			
-    			@Query("SELECT new map(s.title as songName, SUM(st.streamCount) as totalStreams) " +
-    				       "FROM Streams st JOIN Song s ON st.songId = s.songId " +
-    				       "WHERE s.artistId = :artistId " +
-    				       "GROUP BY s.songId, s.title " +
-    				       "ORDER BY totalStreams DESC " +
-    				       "LIMIT 5")
-    				List<Map<String, Object>> findTop5SongsByArtist(@Param("artistId") int artistId);
+	@Query(value = """
+	    SELECT u.user_id, CONCAT(u.firstname, ' ', u.lastname) AS name, 
+	           u.email, u.role, 
+	           CASE WHEN u.is_active = 1 THEN 'Active' ELSE 'Inactive' END AS status
+	    FROM users u
+	    WHERE u.role = 'Artist'
+	    ORDER BY u.firstname, u.lastname Limit 5
+	""", nativeQuery = true)
+	List<Object[]> findTop5ArtistsByStreamsDetails();
+	
+	@Query("SELECT COALESCE(SUM(s.streamCount), 0) FROM Streams s WHERE s.userId = :userId")
+    Long getTotalStreamsByUserId(@Param("userId") int userId);
+	
+	
+	@Query("""
+	        SELECT COALESCE(SUM(st.streamCount), 0)
+	        FROM Streams st
+	        JOIN Song s ON st.songId = s.songId
+	        WHERE s.artistId IN (SELECT u.userid FROM UserDetails u WHERE u.managerId = :managerId AND u.role = 'Artist')
+	    """)
+	long countTotalStreamsByManager(@Param("managerId") int managerId);
+	
+	@Query("SELECT new map(s.title as songName, SUM(st.streamCount) as totalStreams) " +
+		       "FROM Streams st JOIN Song s ON st.songId = s.songId " +
+		       "WHERE s.artistId = :artistId " +
+		       "GROUP BY s.songId, s.title " +
+		       "ORDER BY totalStreams DESC " +
+		       "LIMIT 5")
+		List<Map<String, Object>> findTop5SongsByArtist(@Param("artistId") int artistId);
 
 
-    			@Query("SELECT s.songId, SUM(s.streamCount) as totalStreams FROM Streams s GROUP BY s.songId ORDER BY totalStreams DESC")
-    		    List<Object[]> findTopSongsByStreams();
+	@Query("SELECT s.songId, SUM(s.streamCount) as totalStreams FROM Streams s GROUP BY s.songId ORDER BY totalStreams DESC")
+    List<Object[]> findTopSongsByStreams();
 }
 
 	

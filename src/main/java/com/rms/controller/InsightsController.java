@@ -32,6 +32,11 @@ public class InsightsController {
 	@Autowired
 	private StreamsRepository streamsRepository;
 	
+	@GetMapping("/top-artists/{managerId}")
+    public List<Object[]> getTopArtistsByManager(@PathVariable int managerId) {
+        return insightsService.getTopArtistsByRevenueUnderManager(managerId);
+    }
+	
 	// Get top earning artists
     @GetMapping("/top-earning-artists")
     public Map<Integer, Double> getTopEarningArtists() {

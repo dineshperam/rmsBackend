@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.rms.dtos.LoginRequest;
 import com.rms.dtos.Response;
+import com.rms.model.UserDetails;
 import com.rms.service.UserDetailsService;
 
 @RestController
@@ -27,10 +28,10 @@ public class AuthController {
 	        return ResponseEntity.ok(userDetailsService.loginUser(loginRequest));
 	    }
 	 
-//	 @PostMapping("/register")
-//	    public ResponseEntity<Response> registerUser(@RequestBody UserDetails registerRequest) {
-//	        return ResponseEntity.ok(userDetailsService.registerUser(registerRequest));
-//	    }
-//	 
-//	
+	 @PostMapping("/register")
+	    public ResponseEntity<Response> registerUser(@RequestBody UserDetails registerRequest) {
+	        return ResponseEntity.ok(userDetailsService.registerUser(registerRequest));
+	    }
+	 
+	
 }

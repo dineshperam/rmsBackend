@@ -44,56 +44,56 @@ public class RoyaltyController {
 			return new ResponseEntity<Royalty>(HttpStatus.NOT_FOUND);
 		}
 	}
-		@PostMapping("/addRoyalty")
-		public void addRoyalty(@RequestBody Royalty royalty) {
-			royaltyService.addRoyalty(royalty);
+	@PostMapping("/addRoyalty")
+	public void addRoyalty(@RequestBody Royalty royalty) {
+		royaltyService.addRoyalty(royalty);
+	}
+	@PutMapping("/updateRoyalty")
+	public void updateRoyalty(@RequestBody Royalty updatedRoyalty) {
+		royaltyService.updateRoyalty(updatedRoyalty);
+	}
+	@DeleteMapping("/deleteRoyalty/{id}")
+	public void deleteRoyalty(@PathVariable int id) {
+		royaltyService.deleteRoyalty(id);
+	}
+	@GetMapping("/searchArtistId/{id}")
+	public ResponseEntity<List<Royalty>> searchArtistById(@PathVariable int id){
+		try {
+        List<Royalty> royalty= royaltyService.searchByartistId(id);
+			return new ResponseEntity<List<Royalty>>(royalty, HttpStatus.OK);
 		}
-		@PutMapping("/updateRoyalty")
-		public void updateRoyalty(@RequestBody Royalty updatedRoyalty) {
-			royaltyService.updateRoyalty(updatedRoyalty);
+		catch(NoSuchElementException e) {
+			return new ResponseEntity<List<Royalty>>( HttpStatus.NOT_FOUND);
 		}
-		@DeleteMapping("/deleteRoyalty/{id}")
-		public void deleteRoyalty(@PathVariable int id) {
-			royaltyService.deleteRoyalty(id);
+	}
+	@GetMapping("/searchSongId/{id}")
+	public ResponseEntity<List<Royalty>>searchSongById(@PathVariable int id){
+		try {
+        List<Royalty> royalty= royaltyService.searchBysongId(id);
+			return new ResponseEntity<List<Royalty>>(royalty, HttpStatus.OK);
 		}
-		@GetMapping("/searchArtistId/{id}")
-		public ResponseEntity<List<Royalty>> searchArtistById(@PathVariable int id){
-			try {
-            List<Royalty> royalty= royaltyService.searchByartistId(id);
-				return new ResponseEntity<List<Royalty>>(royalty, HttpStatus.OK);
-			}
-			catch(NoSuchElementException e) {
-				return new ResponseEntity<List<Royalty>>( HttpStatus.NOT_FOUND);
-			}
+		catch(NoSuchElementException e) {
+			return new ResponseEntity<List<Royalty>>( HttpStatus.NOT_FOUND);
 		}
-		@GetMapping("/searchSongId/{id}")
-		public ResponseEntity<List<Royalty>>searchSongById(@PathVariable int id){
-			try {
-            List<Royalty> royalty= royaltyService.searchBysongId(id);
-				return new ResponseEntity<List<Royalty>>(royalty, HttpStatus.OK);
-			}
-			catch(NoSuchElementException e) {
-				return new ResponseEntity<List<Royalty>>( HttpStatus.NOT_FOUND);
-			}
-		}
-		
-		@PutMapping("/payRoyalty/{id}/{adminId}")
-		public ResponseEntity<Map<String, String>> payRoyalty(@PathVariable int id, @PathVariable int adminId) {
-		    try {
-		        royaltyService.processRoyaltyPayment(id, adminId);
-		        Map<String, String> response = new HashMap<>();
-		        response.put("message", "Royalty payment processed successfully.");
-		        return ResponseEntity.ok(response);
-		    } catch (Exception e) {
-		        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-		                .body(Collections.singletonMap("error", "Failed to process royalty payment: " + e.getMessage()));
-		    }
-		}
-		
-		@GetMapping("/calculate")
-		public ResponseEntity<String> calculateRoyalty() {
-		    royaltyService.calculateAndStoreRoyalty(); // Ensuring new records are created
-		    return ResponseEntity.ok("Royalty calculation completed successfully.");
-		}
+	}
+	
+	@PutMapping("/payRoyalty/{id}/{adminId}")
+	public ResponseEntity<Map<String, String>> payRoyalty(@PathVariable int id, @PathVariable int adminId) {
+	    try {
+	        royaltyService.processRoyaltyPayment(id, adminId);
+	        Map<String, String> response = new HashMap<>();
+	        response.put("message", "Royalty payment processed successfully.");
+	        return ResponseEntity.ok(response);
+	    } catch (Exception e) {
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                .body(Collections.singletonMap("error", "Failed to process royalty payment: " + e.getMessage()));
+	    }
+	}
+	
+	@GetMapping("/calculate")
+	public ResponseEntity<String> calculateRoyalty() {
+	    royaltyService.calculateAndStoreRoyalty(); // Ensuring new records are created
+	    return ResponseEntity.ok("Royalty calculation completed successfully.");
+	}
 
 }

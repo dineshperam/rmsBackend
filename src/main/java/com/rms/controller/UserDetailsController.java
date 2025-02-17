@@ -61,10 +61,20 @@ public class UserDetailsController {
 			return new ResponseEntity<UserDetails>(userDetails,HttpStatus.OK);
 		}catch (NoSuchElementException e) {
 			return new ResponseEntity<UserDetails>(HttpStatus.NOT_FOUND);		
-		
 	 }
 		
 	}
+	
+	@PutMapping("/update")
+    public ResponseEntity<?> updateUserProfile(@RequestBody UserDetails userDetails) {
+        boolean isUpdated = userDetailsService.updateUserDetails(userDetails);
+        if (isUpdated) {
+            UserDetails updatedUser = userDetailsService.searchByUseName(userDetails.getUsername());
+            return ResponseEntity.ok(updatedUser);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+    }
 	
 	@PutMapping(value = "/updateUser")
 	 public void updateUser(@RequestBody UserDetails userDetails) {

@@ -32,7 +32,7 @@ public class EmailService {
         mailSender.send(message);
     }
     
-    public void sendWelcomeEmail(String to, String firstname, String role, String username, String password) {
+    public void sendWelcomeEmail(String to, String firstname, String role, String email, String password) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
         message.setSubject("Welcome to Royal Mint - Your Account Details");
@@ -42,7 +42,7 @@ public class EmailService {
         String emailBody = "Dear " + firstname + ",\n\n"
                 + "🎉 Welcome to Royal Mint! We are absolutely thrilled to have you onboard as " + roleText + ". 🎶\n\n"
                 + "Your account has been successfully created, and you can now log in using the credentials below:\n\n"
-                + "🔹 **Username:** " + username + "\n"
+                + "🔹 **Email:** " + email + "\n"
                 + "🔹 **Password:** " + password + "\n\n"
                 + "**Next Steps:**\n"
                 + "✔️ Please log in at [Royal Mint Portal](http://your-app-url.com) and change your password for security.\n"

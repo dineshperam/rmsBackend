@@ -37,6 +37,11 @@ public class PartnershipService {
         return partnershipRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Partnership not found with ID: " + id));
     }
+    
+    public Optional<Partnership> getPartnershipByArtistId(int artistId) {
+    	return partnershipRepository.findMostRecentByArtistId(artistId);
+    			
+    }
 
     // Update an existing Partnership
     public Partnership updatePartnership(int id, Partnership partnership) {
@@ -54,83 +59,77 @@ public class PartnershipService {
         partnershipRepository.deleteById(id);
     }
     
-    public Partnership sendRequest(int artistId, int managerId) {
-        Optional<Partnership> existingRequest = partnershipRepository.findByArtistIdAndManagerId(artistId, managerId);
-
-        if (existingRequest.isPresent()) {
-            throw new RuntimeException("Request already sent to this manager.");
-        }
-
-        Partnership partnership = new Partnership();
-        partnership.setArtistId(artistId);
-        partnership.setManagerId(managerId);
-        partnership.setStatus("Pending");
-
-        return partnershipRepository.save(partnership);
-    }
-
-
-    public List<Partnership> getRequestsForManager(int managerId) {
-        return partnershipRepository.findByManagerIdAndStatus(managerId, "Pending");
-    }
-
-    public Partnership respondToRequest(int partnershipId, String status) {
-        Partnership partnership = partnershipRepository.findById(partnershipId)
-                .orElseThrow(() -> new RuntimeException("Request not found"));
-
-        partnership.setStatus(status);
-        partnershipRepository.save(partnership);
-
-        if ("Accepted".equalsIgnoreCase(status)) {
-            // Update artist's manager_id
-            UserDetails artist = userDetailsRepository.findById(partnership.getArtistId())
-                    .orElseThrow(() -> new RuntimeException("Artist not found"));
-            artist.setManagerId(partnership.getManagerId());
-            userDetailsRepository.save(artist);
-        }
-
-        return partnership;
-    }
     
- // **Artist sends a partnership request**
-    public Partnership sendRequest(int artistId, int managerId, Double percentage, int durationMonths, String comments) {
-        if (durationMonths <= 0) {
-            throw new RuntimeException("Duration must be greater than 0.");
-        }
 
-        if (percentage == null) {  // ✅ Ensure percentage is not null
-            throw new RuntimeException("Percentage cannot be null.");
-        }
+    // **Artist sends a partnership request**
+       public Partnership sendRequest(int artistId, int managerId, Double percentage, int durationMonths, String comments) {
+           if (durationMonths <= 0) {
+               throw new RuntimeException("Duration must be greater than 0.");
+           }
 
-        // Ensure unique request
-        Optional<Partnership> existingRequest = partnershipRepository.findByArtistIdAndManagerId(artistId, managerId);
-        if (existingRequest.isPresent()) {
-            throw new RuntimeException("Request already sent to this manager.");
-        }
+           if (percentage == null) {  // ✅ Ensure percentage is not null
+               throw new RuntimeException("Percentage cannot be null.");
+           }
 
-        Date startDate = new Date(); // ✅ Current timestamp
-        Date endDate = calculateEndDate(startDate, durationMonths);
+           // Ensure unique request
+           Optional<Partnership> existingRequest = partnershipRepository.findByArtistIdAndManagerIdAndStatus(artistId, managerId, "ACCEPTED");
+           if (existingRequest.isPresent()) {
+               throw new RuntimeException("Request already sent to this manager.");
+           }
 
-        Partnership partnership = new Partnership();
-        partnership.setArtistId(artistId);
-        partnership.setManagerId(managerId);
-        partnership.setPercentage(percentage);
-        partnership.setDurationMonths(durationMonths);
-        partnership.setComments(comments);
-        partnership.setStatus("PENDING");
-        partnership.setStartDate(startDate);
-        partnership.setEndDate(endDate);
+           Date startDate = new Date(); // ✅ Current timestamp
+           Date endDate = calculateEndDate(startDate, durationMonths);
 
-        return partnershipRepository.save(partnership);
-    }
-    
- // **Calculate End Date**
-    private Date calculateEndDate(Date startDate, int durationMonths) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(startDate);
-        calendar.add(Calendar.MONTH, durationMonths);
-        return calendar.getTime();
-    }
+           Partnership partnership = new Partnership();
+           partnership.setArtistId(artistId);
+           partnership.setManagerId(managerId);
+           partnership.setPercentage(percentage);
+           partnership.setDurationMonths(durationMonths);
+           partnership.setComments(comments);
+           partnership.setStatus("PENDING");
+           partnership.setStartDate(startDate);
+           partnership.setEndDate(endDate);
+
+           return partnershipRepository.save(partnership);
+       }
+
+
+       // **Manager retrieves all pending requests**
+       public List<Partnership> getRequestsForManager(int managerId) {
+           return partnershipRepository.findByManagerIdAndStatus(managerId, "PENDING");
+       }
+
+       // **Manager accepts or rejects the request**
+       public Partnership respondToRequest(int partnershipId, String status) {
+           Partnership partnership = partnershipRepository.findById(partnershipId)
+                   .orElseThrow(() -> new RuntimeException("Request not found"));
+
+           if ("Accepted".equalsIgnoreCase(status)) {
+               partnership.setStatus("ACCEPTED");
+               partnership.setEndDate(calculateEndDate(partnership.getStartDate(), partnership.getDurationMonths()));
+
+               // Update artist's managerId
+               UserDetails artist = userDetailsRepository.findById(partnership.getArtistId())
+                       .orElseThrow(() -> new RuntimeException("Artist not found"));
+               artist.setManagerId(partnership.getManagerId());
+               userDetailsRepository.save(artist);
+           } else if ("Rejected".equalsIgnoreCase(status)) {
+               partnership.setStatus("INACTIVE");
+           } else {
+               throw new RuntimeException("Invalid status: " + status);
+           }
+
+           return partnershipRepository.save(partnership);
+       }
+
+       // **Calculate End Date**
+       private Date calculateEndDate(Date startDate, int durationMonths) {
+           Calendar calendar = Calendar.getInstance();
+           calendar.setTime(startDate);
+           calendar.add(Calendar.MONTH, durationMonths);
+           return calendar.getTime();
+       }
+
 
 
 }

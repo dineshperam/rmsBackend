@@ -27,6 +27,10 @@ public class TransactionService {
 		return transactionRepository.findByManagerId(id);
 	}
 	
+	public List<Transactions> getTransactionsByReceiver(int userId) {
+        return transactionRepository.findByReceiver(userId);
+    }
+	
 	public void addTransaction(Transactions transaction) {
         transaction.setTransactionDate(new Date());
         transactionRepository.save(transaction);
