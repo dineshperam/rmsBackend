@@ -77,14 +77,15 @@ public class ContactFormService {
             newUser.setPassword(passwordEncoder.encode(dummyPassword));
             newUser.setPasswordHash(dummyPassword);
             newUser.setFirstLogin(true);
+            newUser.setActive(true);
 
             // Set manager ID as admin ID
-            newUser.setManagerId(adminId);
+            newUser.setManagerId(0);
 
             // Save new user
             userDetailsRepository.save(newUser);
             
-            emailService.sendWelcomeEmail(contact.getEmail(), contact.getFirstname(), contact.getRole(),email, dummyPassword);
+            emailService.sendWelcomeEmail(contact.getEmail(), contact.getFirstname(),username, contact.getRole(),email, dummyPassword);
 
             return "Contact request accepted, user created, and email sent.";
         } else {

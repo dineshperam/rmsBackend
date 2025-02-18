@@ -16,7 +16,7 @@ public interface PartnershipRepository extends JpaRepository<Partnership, Intege
 	Optional<Partnership> findByArtistIdAndManagerId(int artistId, int managerId);
     List<Partnership> findByManagerIdAndStatus(int managerId, String status);
     
-    List<Partnership> findByArtistIdAndStatus(int artistId, String status);
+    Optional<Partnership> findByArtistIdAndStatus(int artistId, String status);
     
     Optional<Partnership> findByArtistIdAndManagerIdAndStatus(int artistId, int managerId, String status);
 

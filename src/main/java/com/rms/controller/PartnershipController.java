@@ -131,5 +131,12 @@ public class PartnershipController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+    
+    @GetMapping("/pending/{artistId}")
+    public ResponseEntity<Partnership> getPendingPartnershipRequest(@PathVariable int artistId) {
+        Optional<Partnership> pendingRequest = partnershipService.getPendingRequestForArtist(artistId);
+        return pendingRequest.map(ResponseEntity::ok)
+                             .orElseGet(() -> ResponseEntity.noContent().build());
+    }
 
 }

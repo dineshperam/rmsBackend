@@ -114,7 +114,7 @@ public class PartnershipService {
                artist.setManagerId(partnership.getManagerId());
                userDetailsRepository.save(artist);
            } else if ("Rejected".equalsIgnoreCase(status)) {
-               partnership.setStatus("INACTIVE");
+               partnership.setStatus("InActive");
            } else {
                throw new RuntimeException("Invalid status: " + status);
            }
@@ -129,7 +129,9 @@ public class PartnershipService {
            calendar.add(Calendar.MONTH, durationMonths);
            return calendar.getTime();
        }
-
-
+       
+       public Optional<Partnership> getPendingRequestForArtist(int artistId) {
+           return partnershipRepository.findByArtistIdAndStatus(artistId, "PENDING");
+       }
 
 }
