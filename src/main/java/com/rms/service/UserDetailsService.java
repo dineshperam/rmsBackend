@@ -103,7 +103,8 @@ public class UserDetailsService {
 	
 	public Response registerUser(UserDetails userDetails) {
 		userDetails.setPassword(passwordEncoder.encode(userDetails.getPassword()));
-		userDetails.isActive();
+		userDetails.setActive(true);
+		userDetails.setFirstLogin(true);
 		userDetailsRepository.save(userDetails);
 
 	        return Response.builder()

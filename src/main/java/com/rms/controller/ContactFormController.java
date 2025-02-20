@@ -1,7 +1,5 @@
 package com.rms.controller;
 
-
-
 import com.rms.model.ContactForm;
 import com.rms.service.ContactFormService;
 

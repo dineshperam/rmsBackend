@@ -17,6 +17,7 @@ import com.rms.service.PdfService;
 
 @RestController
 @RequestMapping("/partnerships")
+@CrossOrigin(origins = "*")
 public class PartnershipController {
 
     @Autowired

@@ -1,6 +1,5 @@
 package com.rms.controller;
- 
- 
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -23,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.rms.model.Royalty;
  
 import com.rms.service.RoyaltyService;
- 
+
 @RestController
 @RequestMapping("/royalty")
 @CrossOrigin(origins="*") 
